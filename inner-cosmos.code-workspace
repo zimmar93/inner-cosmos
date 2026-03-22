@@ -1,0 +1,21 @@
+{
+    "folders": [
+        {
+            "path": "backend",
+            "name": "Backend"
+        },
+        {
+            "path": "erp-frontend",
+            "name": "ERP Frontend"
+        },
+        {
+            "path": "store-frontend",
+            "name": "Store Frontend"
+        },
+        {
+            "path": ".",
+            "name": "Root"
+        }
+    ],
+    "settings": {}
+}
