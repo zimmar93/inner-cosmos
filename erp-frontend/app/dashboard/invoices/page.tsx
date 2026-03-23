@@ -33,7 +33,7 @@ function calcTotals(items: any[], discountType: string, discountValue: number, s
 function TableSkeleton() {
     return (
         <div>
-            {Array.from({ length: 6 }).map((\_, i) => (
+            {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} style={{ display: 'flex', gap: '1rem', padding: '0.85rem 1rem', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
                     <div className="skeleton" style={{ height: 14, width: 100 }} />
                     <div className="skeleton" style={{ height: 14, width: 120 }} />
