@@ -1,1 +1,1 @@
-{"version": 2, "projects": {"store": {"name": "inner-cosmos-store", "rootDirectory": "store-frontend"}, "erp": {"name": "inner-cosmos-erp", "rootDirectory": "erp-frontend"}, "api": {"name": "inner-cosmos-api", "rootDirectory": "backend"}}}
+{"buildCommand": "npm install && npm run build","outputDirectory": "dist"}
