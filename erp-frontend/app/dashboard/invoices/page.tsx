@@ -30,6 +30,23 @@ function calcTotals(items: any[], discountType: string, discountValue: number, s
     return { subtotal, discount, tax, grandTotal: Math.max(0, afterDiscount + tax + shippingCost) };
 }
 
+function TableSkeleton() {
+    return (
+        <div>
+            {Array.from({ length: 6 }).map((\_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '1rem', padding: '0.85rem 1rem', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+                    <div className="skeleton" style={{ height: 14, width: 100 }} />
+                    <div className="skeleton" style={{ height: 14, width: 120 }} />
+                    <div className="skeleton" style={{ height: 14, width: 80 }} />
+                    <div className="skeleton" style={{ height: 20, width: 70, borderRadius: 50 }} />
+                    <div className="skeleton" style={{ height: 14, width: 80 }} />
+                    <div className="skeleton" style={{ height: 28, width: 90, borderRadius: 8 }} />
+                <\/div>
+            ))}
+        <\/div>
+    );
+}
+
 export default function InvoicesPage() {
     const [invoices, setInvoices] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
@@ -227,7 +244,7 @@ export default function InvoicesPage() {
                 </div>
                 <div className="card">
                     <div className="table-wrap">
-                        {loading ? <div className="loading-spinner" /> : (
+                        {loading ? <TableSkeleton /> : (
                             <table>
                                 <thead><tr><th>Invoice #</th><th>Client</th><th>Issue Date</th><th>Due Date</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>

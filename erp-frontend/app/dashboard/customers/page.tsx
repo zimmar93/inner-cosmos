@@ -1,14 +1,32 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Search, Plus, X } from 'lucide-react';
+import { Plus, X, User } from 'lucide-react';
 import api from '@/lib/api';
+import toast from 'react-hot-toast';
+
+function TableSkeleton() {
+    return (
+        <div>
+            {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '1rem', padding: '0.85rem 1rem', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+                    <div className="skeleton" style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }} />
+                    <div className="skeleton" style={{ height: 14, flex: 1 }} />
+                    <div className="skeleton" style={{ height: 14, flex: 1.5 }} />
+                    <div className="skeleton" style={{ height: 20, width: 80, borderRadius: 50 }} />
+                    <div className="skeleton" style={{ height: 14, width: 100 }} />
+                    <div className="skeleton" style={{ height: 14, width: 80 }} />
+                </div>
+            ))}
+        </div>
+    );
+}
 
 export default function CustomersPage() {
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-
     const [showModal, setShowModal] = useState(false);
     const [cf, setCf] = useState({ name: '', email: '', phone: '', company: '', address: '' });
+    const [saving, setSaving] = useState(false);
 
     const loadCustomers = () => {
         setLoading(true);
@@ -17,12 +35,12 @@ export default function CustomersPage() {
         }).finally(() => setLoading(false));
     };
 
-    useEffect(() => {
-        loadCustomers();
-    }, []);
+    useEffect(() => { loadCustomers(); }, []);
 
-    const addCustomer = async () => {
+    const addCustomer = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (!cf.name || !cf.email) return;
+        setSaving(true);
         try {
             await api.post('/auth/register', {
                 name: cf.name,
@@ -30,52 +48,88 @@ export default function CustomersPage() {
                 phone: cf.phone,
                 company: cf.company,
                 address: cf.address,
-                password: 'password123',
-                role: 'CUSTOMER'
+                password: 'ChangeMe123!',
             });
+            toast.success('Customer added successfully');
             loadCustomers();
             setCf({ name: '', email: '', phone: '', company: '', address: '' });
             setShowModal(false);
-        } catch (e) {
-            console.error(e);
-            alert('Failed to add customer');
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to add customer');
+        } finally {
+            setSaving(false);
         }
     };
+
+    const getInitials = (name: string, email: string) => {
+        if (name && name.trim()) return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        return email.slice(0, 2).toUpperCase();
+    };
+
+    const avatarColors = ['#ede9fe', '#dbeafe', '#dcfce7', '#fef9c3', '#fee2e2'];
+    const avatarTextColors = ['#7c3aed', '#1d4ed8', '#15803d', '#a16207', '#b91c1c'];
 
     return (
         <>
             <div className="erp-topbar">
                 <div>
                     <div className="page-title">Customers</div>
-                    <div className="page-subtitle">Manage customer accounts and profiles</div>
+                    <div className="page-subtitle">{loading ? '…' : `${customers.length} customer${customers.length !== 1 ? 's' : ''}`}</div>
                 </div>
                 <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                    <Plus size={16} /> Add Customer
+                    <Plus size={15} /> Add customer
                 </button>
             </div>
+
             <div className="erp-content">
                 <div className="card">
-                    <div className="table-wrap">
-                        {loading ? <div className="loading-spinner" /> : (
+                    {loading ? <TableSkeleton /> : customers.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--muted)' }}>
+                            <User size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
+                            <p style={{ fontWeight: 500 }}>No customers yet</p>
+                            <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ marginTop: '1rem' }}><Plus size={14} /> Add first customer</button>
+                        </div>
+                    ) : (
+                        <div className="table-wrap">
                             <table>
-                                <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Company</th><th>Phone</th><th>Joined</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Email</th>
+                                        <th>Company</th>
+                                        <th>Phone</th>
+                                        <th>Joined</th>
+                                    </tr>
+                                </thead>
                                 <tbody>
-                                    {customers.length === 0 ? (
-                                        <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '2rem' }}>No customers yet</td></tr>
-                                    ) : customers.map((u) => (
-                                        <tr key={u.id}>
-                                            <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--muted)' }}>{u.id.slice(-8)}</td>
-                                            <td style={{ fontWeight: 600 }}>{u.name || 'Unnamed'}</td>
-                                            <td>{u.email}</td>
-                                            <td><span className="badge badge-purple">{u.customer?.company || 'None'}</span></td>
-                                            <td style={{ color: 'var(--muted)' }}>{u.customer?.phone || '—'}</td>
-                                            <td style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                                        </tr>
-                                    ))}
+                                    {customers.map((u, i) => {
+                                        const ci = i % avatarColors.length;
+                                        return (
+                                            <tr key={u.id}>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                        <div style={{
+                                                            width: 32, height: 32, borderRadius: '50%',
+                                                            background: avatarColors[ci], color: avatarTextColors[ci],
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: '0.72rem', fontWeight: 700, flexShrink: 0,
+                                                        }}>
+                                                            {getInitials(u.name || '', u.email)}
+                                                        </div>
+                                                        <span style={{ fontWeight: 600 }}>{u.name || <span style={{ color: 'var(--muted)', fontStyle: 'italic', fontWeight: 400 }}>No name</span>}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>{u.email}</td>
+                                                <td>{u.customer?.company ? <span className="badge badge-purple">{u.customer.company}</span> : <span style={{ color: 'var(--muted)' }}>—</span>}</td>
+                                                <td style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>{u.customer?.phone || '—'}</td>
+                                                <td style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>{new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -83,15 +137,25 @@ export default function CustomersPage() {
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
                     <div className="modal-box" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <div className="modal-title">Add Customer</div>
-                            <button className="btn btn-sm btn-outline" onClick={() => setShowModal(false)}><X size={16} /></button>
+                            <div className="modal-title">Add customer</div>
+                            <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: '0.25rem', borderRadius: 6 }}>
+                                <X size={18} />
+                            </button>
                         </div>
-                        <div className="form-group"><label>Name *</label><input value={cf.name} onChange={e => setCf({ ...cf, name: e.target.value })} placeholder="Full name" /></div>
-                        <div className="form-group"><label>Email *</label><input value={cf.email} onChange={e => setCf({ ...cf, email: e.target.value })} placeholder="email@example.com" /></div>
-                        <div className="form-group"><label>Phone</label><input value={cf.phone} onChange={e => setCf({ ...cf, phone: e.target.value })} placeholder="+1 555-0000" /></div>
-                        <div className="form-group"><label>Company</label><input value={cf.company} onChange={e => setCf({ ...cf, company: e.target.value })} placeholder="Company name" /></div>
-                        <div className="form-group"><label>Address</label><input value={cf.address} onChange={e => setCf({ ...cf, address: e.target.value })} placeholder="Full address" /></div>
-                        <button className="btn btn-primary" onClick={addCustomer} style={{ width: '100%', marginTop: '0.5rem' }}>Add Customer</button>
+                        <form onSubmit={addCustomer}>
+                            <div className="form-group"><label>Full name *</label><input required value={cf.name} onChange={e => setCf({ ...cf, name: e.target.value })} placeholder="Jane Smith" /></div>
+                            <div className="form-group"><label>Email *</label><input type="email" required value={cf.email} onChange={e => setCf({ ...cf, email: e.target.value })} placeholder="jane@example.com" /></div>
+                            <div className="form-group"><label>Phone</label><input value={cf.phone} onChange={e => setCf({ ...cf, phone: e.target.value })} placeholder="+1 555-0000" /></div>
+                            <div className="form-group"><label>Company</label><input value={cf.company} onChange={e => setCf({ ...cf, company: e.target.value })} placeholder="Acme Corp" /></div>
+                            <div className="form-group"><label>Address</label><input value={cf.address} onChange={e => setCf({ ...cf, address: e.target.value })} placeholder="123 Main St, City" /></div>
+                            <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg)', borderRadius: 8 }}>
+                                A temporary password <strong>ChangeMe123!</strong> will be assigned. Customer should update it on first login.
+                            </p>
+                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Adding…' : 'Add customer'}</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

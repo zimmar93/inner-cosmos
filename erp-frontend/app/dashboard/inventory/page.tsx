@@ -11,6 +11,20 @@ export default function InventoryPage() {
     const [qty, setQty] = useState('');
     const [mode, setMode] = useState<'adjust' | 'set'>('adjust');
 
+    const TableSkeleton = () => (
+        <div>
+            {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '1rem', padding: '0.85rem 1rem', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+                    <div className="skeleton" style={{ height: 14, flex: 2 }} />
+                    <div className="skeleton" style={{ height: 14, width: 60 }} />
+                    <div className="skeleton" style={{ height: 14, width: 50 }} />
+                    <div className="skeleton" style={{ height: 20, width: 60, borderRadius: 50 }} />
+                    <div className="skeleton" style={{ height: 28, width: 80, borderRadius: 8 }} />
+                </div>
+            ))}
+        </div>
+    );
+
     const load = () => {
         setLoading(true);
         api.get('/inventory').then((r) => setItems(r.data)).finally(() => setLoading(false));
@@ -50,7 +64,7 @@ export default function InventoryPage() {
             <div className="erp-content">
                 <div className="card">
                     <div className="table-wrap">
-                        {loading ? <div className="loading-spinner" /> : (
+                        {loading ? <TableSkeleton /> : (
                             <table>
                                 <thead><tr><th>Product</th><th>SKU</th><th>Available</th><th>Reserved</th><th>Actions</th></tr></thead>
                                 <tbody>
