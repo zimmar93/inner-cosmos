@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/store/cart';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -36,8 +36,8 @@ function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () =
     return (
         <form onSubmit={handleSubmit}>
             <PaymentElement />
-            <button type="submit" className="btn btn-primary" disabled={!stripe || processing} style={{ width: '100%', marginTop: '1.5rem' }}>
-                {processing ? 'Processing...' : 'Pay Now'}
+            <button type="submit" className="btn btn-primary" disabled={!stripe || processing} style={{ width: '100%', marginTop: '1.5rem', padding: '0.85rem' }}>
+                {processing ? 'Processing…' : 'Pay now'}
             </button>
         </form>
     );
@@ -50,6 +50,7 @@ export default function CheckoutPage() {
     const [orderId, setOrderId] = useState<string | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<'STRIPE' | 'COD'>('STRIPE');
     const [loading, setLoading] = useState(false);
+    const submittingRef = useRef(false);
 
     useEffect(() => {
         if (!Cookies.get('access_token')) { router.push('/login'); return; }
@@ -57,9 +58,10 @@ export default function CheckoutPage() {
     }, []);
 
     const placeOrder = async () => {
+        if (submittingRef.current) return;
+        submittingRef.current = true;
         setLoading(true);
         try {
-            // 1) Create order
             const orderRes = await api.post('/orders', {
                 items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
                 paymentMethod,
@@ -74,11 +76,11 @@ export default function CheckoutPage() {
                 return;
             }
 
-            // 2) Create payment intent for Stripe
             const intentRes = await api.post(`/payments/intent/${order.id}`);
             setClientSecret(intentRes.data.clientSecret);
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to place order');
+            submittingRef.current = false;
         } finally {
             setLoading(false);
         }
@@ -88,43 +90,44 @@ export default function CheckoutPage() {
 
     return (
         <div className="container" style={{ padding: '3rem 1.5rem' }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '2rem' }}>Checkout</h1>
+            <h1 style={{ fontSize: '1.9rem', fontWeight: 700, letterSpacing: '-0.025em', marginBottom: '2rem' }}>Checkout</h1>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem', alignItems: 'start' }}>
                 <div>
                     {!clientSecret ? (
                         <div className="card" style={{ padding: '2rem' }}>
-                            <h2 style={{ fontWeight: 700, marginBottom: '1.5rem' }}>Payment Method</h2>
+                            <h2 style={{ fontWeight: 700, marginBottom: '1.5rem', fontSize: '1.05rem' }}>Payment method</h2>
                             <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
                                 {(['STRIPE', 'COD'] as const).map((m) => (
-                                    <label key={m} className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', cursor: 'pointer', border: paymentMethod === m ? '2px solid var(--primary)' : undefined }}>
-                                        <input type="radio" value={m} checked={paymentMethod === m} onChange={() => setPaymentMethod(m)} />
-                                        {m === 'STRIPE' ? '💳 Credit / Debit Card' : '💵 Cash on Delivery'}
+                                    <label key={m} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem 1.1rem', cursor: 'pointer', border: '1.5px solid', borderColor: paymentMethod === m ? 'var(--primary)' : 'var(--border)', borderRadius: 10, background: paymentMethod === m ? 'var(--primary-50)' : 'transparent', transition: 'all 0.15s' }}>
+                                        <input type="radio" value={m} checked={paymentMethod === m} onChange={() => setPaymentMethod(m)} style={{ width: 'auto', accentColor: 'var(--primary)' }} />
+                                        <span style={{ fontSize: '0.92rem', fontWeight: 500 }}>{m === 'STRIPE' ? '💳 Card payment' : '💵 Cash on delivery'}</span>
                                     </label>
                                 ))}
                             </div>
-                            <button className="btn btn-primary" onClick={placeOrder} disabled={loading} style={{ width: '100%' }}>
-                                {loading ? 'Placing Order...' : paymentMethod === 'COD' ? 'Place Order (Cash on Delivery)' : 'Continue to Payment'}
+                            <button className="btn btn-primary" onClick={placeOrder} disabled={loading} style={{ width: '100%', padding: '0.85rem' }}>
+                                {loading ? 'Placing order…' : paymentMethod === 'COD' ? 'Place order' : 'Continue to payment'}
                             </button>
                         </div>
                     ) : (
                         <div className="card" style={{ padding: '2rem' }}>
-                            <h2 style={{ fontWeight: 700, marginBottom: '1.5rem' }}>Enter Payment Details</h2>
+                            <h2 style={{ fontWeight: 700, marginBottom: '1.5rem', fontSize: '1.05rem' }}>Payment details</h2>
                             <Elements stripe={stripePromise} options={{ clientSecret }}>
                                 <CheckoutForm orderId={orderId!} onSuccess={() => { clearCart(); router.push('/orders'); }} />
                             </Elements>
                         </div>
                     )}
                 </div>
+
                 <div className="card" style={{ padding: '1.5rem' }}>
-                    <h2 style={{ fontWeight: 800, marginBottom: '1.5rem' }}>Order Summary</h2>
+                    <h2 style={{ fontWeight: 700, marginBottom: '1.25rem', fontSize: '1.05rem' }}>Order summary</h2>
                     {items.map((item) => (
-                        <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+                        <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.65rem', fontSize: '0.88rem' }}>
                             <span style={{ color: 'var(--muted)' }}>{item.name} ×{item.quantity}</span>
                             <span style={{ fontWeight: 600 }}>${(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}
-                    <hr style={{ margin: '1rem 0', borderColor: 'var(--border)' }} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.2rem' }}>
+                    <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.02em' }}>
                         <span>Total</span>
                         <span style={{ color: 'var(--primary)' }}>${total().toFixed(2)}</span>
                     </div>
