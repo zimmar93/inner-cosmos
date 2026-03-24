@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useCms } from '@/lib/cms';
 import { getBlockRenderer } from '@/components/blocks/BlockRenderers';
 import api from '@/lib/api';
 
@@ -10,7 +9,7 @@ function normalizeBlock(raw: any): any {
     let type: string = raw.type || raw.section || raw.blockType || '';
     const id: string = raw.id || Math.random().toString(36).slice(2, 10);
     let data: Record<string, any> = raw.data || raw.content || raw.settings || {};
-    
+
     if (Object.keys(data).length === 0) {
         const systemKeys = ['id', 'type', 'section', 'blockType', 'createdAt', 'updatedAt'];
         const legacyData: Record<string, any> = {};
@@ -19,7 +18,7 @@ function normalizeBlock(raw: any): any {
         }
         if (Object.keys(legacyData).length > 0) data = legacyData;
     }
-    
+
     // Fuzzy type matching for store-frontend too
     const typeLower = type.toLowerCase().replace(/\s+/g, '');
     const typeMap: Record<string, string> = {
@@ -31,8 +30,19 @@ function normalizeBlock(raw: any): any {
         'contactform': 'contact-form', 'newsletter': 'newsletter'
     };
     const mappedType = typeMap[typeLower] || typeLower;
-
     return { id, type: mappedType, data };
+}
+
+function parseBlocks(raw: any): any[] {
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return [];
+        }
+    }
+    return [];
 }
 
 export default function HomePage() {
@@ -40,25 +50,42 @@ export default function HomePage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // First try to get the designated homepage
-        api.get('/pages/homepage').then(r => {
-            if (r.data?.blocks) {
-                const b = Array.isArray(r.data.blocks) ? r.data.blocks : JSON.parse(r.data.blocks || '[]');
-                setBlocks(b.map(normalizeBlock).filter(Boolean));
-            } else {
-                // Fallback to old content system if no homepage page exists
-                api.get('/content').then(res => {
-                    const b = res.data?.['page-blocks'] || [];
+        let cancelled = false;
+
+        async function fetchBlocks() {
+            try {
+                // First try to get the designated homepage
+                const r = await api.get('/pages/homepage');
+                if (!cancelled && r.data?.blocks) {
+                    const b = parseBlocks(r.data.blocks);
                     setBlocks(b.map(normalizeBlock).filter(Boolean));
-                }).catch(() => {});
+                    return;
+                }
+            } catch {
+                // Homepage endpoint failed, continue to fallback
             }
-        }).catch(() => {
-            // Further fallback
-            api.get('/content').then(res => {
-                const b = res.data?.['page-blocks'] || [];
-                setBlocks(b.map(normalizeBlock).filter(Boolean));
-            }).catch(() => {});
-        }).finally(() => setLoading(false));
+
+            // Fallback to old content system
+            try {
+                if (!cancelled) {
+                    const res = await api.get('/content');
+                    if (!cancelled) {
+                        const b = res.data?.['page-blocks'] || [];
+                        setBlocks(b.map(normalizeBlock).filter(Boolean));
+                    }
+                }
+            } catch {
+                // Both endpoints failed, blocks stays empty
+            }
+        }
+
+        fetchBlocks().finally(() => {
+            if (!cancelled) setLoading(false);
+        });
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     if (loading) {
@@ -70,7 +97,7 @@ export default function HomePage() {
     }
 
     return (
-        <> 
+        <>
             {blocks.map((block: any) => {
                 const Renderer = getBlockRenderer(block.type);
                 if (!Renderer) {
