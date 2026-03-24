@@ -41,9 +41,9 @@ function TableSkeleton() {
                     <div className="skeleton" style={{ height: 20, width: 70, borderRadius: 50 }} />
                     <div className="skeleton" style={{ height: 14, width: 80 }} />
                     <div className="skeleton" style={{ height: 28, width: 90, borderRadius: 8 }} />
-                <\/div>
+                </div>
             ))}
-        <\/div>
+        </div>
     );
 }
 
