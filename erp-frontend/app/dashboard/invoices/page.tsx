@@ -150,7 +150,7 @@ export default function InvoicesPage() {
         </tbody></table>
         <div class="totals"><table>
         <tr><td>Subtotal</td><td>$${Number(inv.subtotal).toFixed(2)}</td></tr>
-        ${Number(inv.discountValue) > 0 ? `<tr><td>Discount (${inv.discountType === 'PERCENT' ? Number(inv.discountValue) + '%' : '$' + Number(inv.discountValue).toFixed(2)})</td><td>-</td></tr>` : ''}
+        ${Number(inv.discountValue) > 0 ? `<tr><td>Discount (${inv.discountType === 'PERCENT' ? Number(inv.discountValue) + '%' : '$' + Number(inv.discountValue).toFixed(2)})</td><td>-$${Number(inv.discountValue).toFixed(2)}</td></tr>` : ''}
         ${(() => {
                 const t = items.reduce((s: number, i: any) => s + (i.quantity * i.unitPrice * (i.taxRate || 0) / 100), 0);
                 return t > 0 ? `<tr><td>Tax</td><td>$${t.toFixed(2)}</td></tr>` : '';
@@ -336,7 +336,7 @@ export default function InvoicesPage() {
                                 <>
                                     <div style={{ overflow: 'visible' }}>
                                         <table style={{ width: '100%', fontSize: '0.85rem' }}>
-                                            <thead><tr><th>Product Name</th><th style={{ width: 90 }}>Qty</th><th style={{ width: 110 }}>Unit Price</th><th style={{ width: 100 }}>Tax %</th><th style={{ width: 100 }}>Total</th><th style={{ width: 40 }}></th></tr></thead>
+                                            <thead><tr><th>Product Name</th><th style={{ width: 90 }}>Qty</th><th style={{ width: 110 }}>Unit Price</th><th style={{ width: 100 }}>Tax %</th><th style={{ width: 100 }}>Total</th><th style={{ width: 40 }}>Delete</th></tr></thead>
                                             <tbody>
                                                 {form.items.map((item, idx) => {
                                                     const lineNet = (item.quantity || 0) * (item.unitPrice || 0);
