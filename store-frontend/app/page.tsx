@@ -1,6 +1,8 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { useCms } from '@/lib/cms';
 import { getBlockRenderer } from '@/components/blocks/BlockRenderers';
+import api from '@/lib/api';
 
 /* ── Block normalizer (shared logic with builder) ── */
 function normalizeBlock(raw: any): any {
@@ -68,7 +70,7 @@ export default function HomePage() {
     }
 
     return (
-        <>
+        <> 
             {blocks.map((block: any) => {
                 const Renderer = getBlockRenderer(block.type);
                 if (!Renderer) {
